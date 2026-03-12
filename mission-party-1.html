@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLASSIFIED: Your Mission</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Oswald:wght@700&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --red: #cc0000;
+    --amber: #f5a623;
+    --green: #00ff41;
+    --paper: #e8dfc8;
+    --dark-paper: #c9bfa4;
+    --ink: #1a1208;
+    --stamp-red: #8b0000;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+
+  /* ── INTRO SCREEN ── */
+  #intro {
+    position: fixed; inset: 0;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    transition: opacity 1s ease;
+  }
+  #intro.fade-out { opacity: 0; pointer-events: none; }
+
+  .intro-logo {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.2rem, 4vw, 2rem);
+    color: #fff;
+    letter-spacing: 0.3em;
+    text-align: center;
+    opacity: 0;
+    animation: fadeIn 1s 0.5s forwards;
+  }
+  .intro-logo span { color: var(--red); }
+
+  .intro-sub {
+    font-size: clamp(0.6rem, 2vw, 0.85rem);
+    color: #555;
+    letter-spacing: 0.5em;
+    margin-top: 10px;
+    opacity: 0;
+    animation: fadeIn 1s 1.2s forwards;
+  }
+
+  .scan-line {
+    width: 200px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--red), transparent);
+    margin-top: 40px;
+    opacity: 0;
+    animation: scanPulse 1.5s 2s infinite;
+  }
+
+  .play-btn {
+    margin-top: 50px;
+    padding: 14px 40px;
+    border: 2px solid var(--red);
+    background: transparent;
+    color: var(--red);
+    font-family: 'Oswald', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.3em;
+    cursor: pointer;
+    opacity: 0;
+    animation: fadeIn 1s 2.5s forwards;
+    transition: background 0.3s, color 0.3s;
+    text-transform: uppercase;
+  }
+  .play-btn:hover { background: var(--red); color: #fff; }
+
+  /* ── MAIN DOSSIER ── */
+  #dossier {
+    display: none;
+    width: min(780px, 96vw);
+    padding: 20px;
+  }
+  #dossier.visible { display: block; }
+
+  .file-wrapper {
+    background: var(--paper);
+    box-shadow: 0 0 60px rgba(0,0,0,0.9), inset 0 0 80px rgba(0,0,0,0.1);
+    position: relative;
+    padding: 50px 60px;
+    border: 1px solid var(--dark-paper);
+    animation: paperReveal 0.8s ease forwards;
+  }
+
+  /* Paper texture via pseudo */
+  .file-wrapper::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(0,0,0,0.04) 28px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .file-wrapper > * { position: relative; z-index: 1; }
+
+  /* Hole punches */
+  .hole { 
+    position: absolute; 
+    width: 18px; height: 18px; 
+    background: #0a0a0a;
+    border-radius: 50%;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
+    left: 22px;
+  }
+  .hole.top { top: 60px; }
+  .hole.mid { top: 50%; transform: translateY(-50%); }
+  .hole.bot { bottom: 60px; }
+
+  /* Header bar */
+  .file-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+  }
+
+  .agency-badge {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--ink);
+    line-height: 1.8;
+  }
+  .agency-badge .logo-text {
+    font-size: 1.3rem;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    display: block;
+  }
+
+  .classification-box {
+    text-align: right;
+  }
+  .class-stamp {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.6rem;
+    color: var(--stamp-red);
+    letter-spacing: 0.15em;
+    border: 3px solid var(--stamp-red);
+    padding: 4px 12px;
+    display: inline-block;
+    transform: rotate(3deg);
+    opacity: 0.85;
+    text-shadow: 1px 1px 0 rgba(139,0,0,0.3);
+  }
+  .ref-num {
+    font-size: 0.6rem;
+    color: #666;
+    margin-top: 6px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Dossier body */
+  .section-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.4em;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #bbb;
+    padding-bottom: 3px;
+  }
+
+  .mission-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.4rem, 5vw, 2.4rem);
+    color: var(--ink);
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .mission-title span { color: var(--stamp-red); }
+
+  .mission-subtitle {
+    font-size: 0.75rem;
+    color: #555;
+    letter-spacing: 0.2em;
+    margin-bottom: 30px;
+  }
+
+  /* Redacted photo + briefing */
+  .briefing-row {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 28px;
+    align-items: flex-start;
+  }
+
+  .photo-box {
+    flex: 0 0 130px;
+  }
+  .photo-placeholder {
+    width: 130px; height: 160px;
+    background: linear-gradient(135deg, #c9bfa4, #b8ad98);
+    border: 2px solid #aaa;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-placeholder::after {
+    content: 'REDACTED';
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: #000;
+    background: #000;
+    color: var(--paper);
+    padding: 3px 8px;
+    transform: rotate(-30deg);
+    position: absolute;
+    width: 200%;
+    text-align: center;
+    top: 50%;
+  }
+  .photo-icon {
+    font-size: 3rem;
+    opacity: 0.3;
+  }
+  .photo-caption {
+    font-size: 0.5rem;
+    letter-spacing: 0.15em;
+    color: #777;
+    text-align: center;
+    margin-top: 5px;
+  }
+
+  .briefing-text {
+    flex: 1;
+  }
+  .briefing-text p {
+    font-size: 0.82rem;
+    line-height: 1.9;
+    color: var(--ink);
+    margin-bottom: 0;
+    min-height: 1.9em;
+  }
+
+  /* Cursor blink */
+  .cursor {
+    display: inline-block;
+    width: 8px; height: 0.9em;
+    background: var(--ink);
+    vertical-align: middle;
+    animation: blink 0.8s step-end infinite;
+    margin-left: 1px;
+  }
+
+  /* Intel grid */
+  .intel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .intel-item {
+    background: rgba(0,0,0,0.04);
+    border: 1px solid var(--dark-paper);
+    padding: 10px 14px;
+  }
+  .intel-label {
+    font-size: 0.5rem;
+    letter-spacing: 0.3em;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .intel-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--ink);
+    letter-spacing: 0.05em;
+  }
+
+  /* Objectives */
+  .objectives {
+    margin-bottom: 28px;
+  }
+  .obj-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.4s ease;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  .obj-item.revealed { opacity: 1; transform: translateX(0); }
+  .obj-num {
+    flex: 0 0 22px; height: 22px;
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 0.6rem;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold;
+    margin-top: 2px;
+  }
+
+  /* Footer / self destruct */
+  .file-footer {
+    border-top: 2px solid var(--ink);
+    padding-top: 16px;
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer-text {
+    font-size: 0.55rem;
+    color: #777;
+    letter-spacing: 0.1em;
+    line-height: 1.8;
+  }
+
+  /* Self destruct */
+  #self-destruct-container {
+    display: none;
+    text-align: center;
+    padding: 10px 20px;
+    border: 2px solid var(--red);
+    background: rgba(204,0,0,0.08);
+    animation: urgentPulse 0.5s ease infinite alternate;
+  }
+  #self-destruct-container.active { display: block; }
+
+  .sd-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    margin-bottom: 4px;
+  }
+  #countdown {
+    font-family: 'Oswald', sans-serif;
+    font-size: 2.8rem;
+    color: var(--red);
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(204,0,0,0.5);
+  }
+
+  /* Destroyed state */
+  #destroyed {
+    display: none;
+    text-align: center;
+    padding: 80px 40px;
+    font-family: 'Oswald', sans-serif;
+    color: var(--red);
+  }
+  #destroyed.active { display: block; }
+  .destroyed-title {
+    font-size: 3rem;
+    letter-spacing: 0.3em;
+    animation: glitch 0.3s infinite;
+  }
+  .destroyed-sub {
+    font-size: 0.8rem;
+    letter-spacing: 0.4em;
+    color: #555;
+    margin-top: 12px;
+  }
+
+  /* Static overlay for destruction */
+  #static-overlay {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 200;
+    display: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.15) 0px,
+      rgba(0,0,0,0.15) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+  }
+  #static-overlay.active {
+    display: block;
+    animation: staticFlash 0.1s steps(1) infinite;
+  }
+
+  /* Scanlines overlay always */
+  #scanlines {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.03) 4px
+    );
+  }
+
+  /* ── KEYFRAMES ── */
+  @keyframes fadeIn { to { opacity: 1; } }
+  @keyframes scanPulse {
+    0% { opacity: 0; transform: scaleX(0.2); }
+    50% { opacity: 1; transform: scaleX(1); }
+    100% { opacity: 0; transform: scaleX(0.2); }
+  }
+  @keyframes paperReveal {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  @keyframes urgentPulse {
+    from { border-color: var(--red); box-shadow: 0 0 5px rgba(204,0,0,0.3); }
+    to { border-color: #ff3333; box-shadow: 0 0 20px rgba(204,0,0,0.6); }
+  }
+  @keyframes glitch {
+    0% { transform: translate(0); }
+    25% { transform: translate(-3px, 1px); }
+    50% { transform: translate(3px, -1px); }
+    75% { transform: translate(-1px, 2px); }
+    100% { transform: translate(0); }
+  }
+  @keyframes staticFlash {
+    0% { opacity: 1; background-position: 0 0; }
+    50% { opacity: 0.7; background-position: 0 3px; }
+    100% { opacity: 1; background-position: 0 1px; }
+  }
+
+  @media (max-width: 500px) {
+    .file-wrapper { padding: 35px 28px 35px 38px; }
+    .briefing-row { flex-direction: column; }
+    .intel-grid { grid-template-columns: 1fr; }
+    .photo-box { align-self: center; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scanlines"></div>
+<div id="static-overlay"></div>
+
+<!-- ── INTRO ── -->
+<div id="intro">
+  <div class="intro-logo"><span>EYES</span> ONLY</div>
+  <div class="intro-sub">ENCRYPTED TRANSMISSION INCOMING</div>
+  <div class="scan-line"></div>
+  <button class="play-btn" onclick="startMission()">▶ ACCEPT TRANSMISSION</button>
+</div>
+
+<!-- ── DOSSIER ── -->
+<div id="dossier">
+  <div class="file-wrapper" id="file-wrapper">
+    <div class="hole top"></div>
+    <div class="hole mid"></div>
+    <div class="hole bot"></div>
+
+    <div class="file-header">
+      <div class="agency-badge">
+        <span class="logo-text">IMF</span>
+        IMPOSSIBLE MISSIONS FORCE<br>
+        DOMESTIC OPERATIONS DIVISION
+      </div>
+      <div class="classification-box">
+        <div class="class-stamp">TOP SECRET</div>
+        <div class="ref-num">REF: IMF-2025-HWP-001 &nbsp;|&nbsp; EYES ONLY</div>
+      </div>
+    </div>
+
+    <div class="section-label">Operation Designation</div>
+    <div class="mission-title">OPERATION:<br><span>WARM HOUSE</span></div>
+    <div class="mission-subtitle">PRIORITY ALPHA &nbsp;·&nbsp; PERSONAL ATTENDANCE REQUIRED &nbsp;·&nbsp; NO EXCUSES</div>
+
+    <div class="briefing-row">
+      <div class="photo-box">
+        <div class="photo-placeholder">
+          <div class="photo-icon">🏠</div>
+        </div>
+        <div class="photo-caption">TARGET LOCATION · CLASSIFIED</div>
+      </div>
+
+      <div class="briefing-text">
+        <div class="section-label">Mission Briefing</div>
+        <p id="typing-text"></p><span id="typing-cursor" class="cursor"></span>
+      </div>
+    </div>
+
+    <div class="intel-grid">
+      <div class="intel-item">
+        <div class="intel-label">Mission Date</div>
+        <div class="intel-value" id="party-date">[ INSERT DATE HERE ]</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-label">Extraction Time</div>
+        <div class="intel-value" id="party-time">[ INSERT TIME ] HRS</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-label">Rendezvous Point</div>
+        <div class="intel-value" id="party-address">[ INSERT ADDRESS ]</div>
+      </div>
+      <div class="intel-item">
+        <div class="intel-label">Cover Identity</div>
+        <div class="intel-value">PARTY GUEST (HOUSEWARMING)</div>
+      </div>
+    </div>
+
+    <div class="section-label">Mission Objectives</div>
+    <div class="objectives" id="objectives">
+      <div class="obj-item" id="obj1">
+        <div class="obj-num">01</div>
+        <div>Arrive at the rendezvous point at the designated hour. Do not be late. The operatives have prepared for your arrival and tardiness will be considered an act of aggression.</div>
+      </div>
+      <div class="obj-item" id="obj2">
+        <div class="obj-num">02</div>
+        <div>A housewarming gift is strongly advised. Standard field kit: a bottle of something fine, a plant, or a contribution to the snack table. Arrive empty-handed at your own risk.</div>
+      </div>
+      <div class="obj-item" id="obj3">
+        <div class="obj-num">03</div>
+        <div>You are cleared to eat freely, drink generously, and laugh loudly. Intelligence suggests the food situation will be extraordinary. Come with appetite. Come prepared.</div>
+      </div>
+      <div class="obj-item" id="obj4">
+        <div class="obj-num">04</div>
+        <div>Infiltrate the dance floor. This is not optional. The agency has received reports that the music selection will be a classified weapon. Resistance is futile.</div>
+      </div>
+      <div class="obj-item" id="obj5">
+        <div class="obj-num">05</div>
+        <div>Confirm your attendance via secure channel immediately. Agent headcount is required for mission logistics. Do not leave them hanging.</div>
+      </div>
+    </div>
+
+    <div class="section-label">Contact</div>
+    <div style="font-size:0.75rem; color:var(--ink); margin-bottom: 24px; letter-spacing:0.08em;">
+      Reach your handler via <strong id="party-contact">[ INSERT PHONE / EMAIL ]</strong><br>
+      Should you encounter difficulties locating the rendezvous point, request backup immediately.
+    </div>
+
+    <div class="file-footer">
+      <div class="footer-text">
+        AUTHORIZED BY: THE SECRETARY<br>
+        DISTRIBUTION: STRICTLY LIMITED — TRUSTED ASSOCIATES ONLY<br>
+        As always — if you or any member of your team<br>
+        is caught not having fun, the agency will deny<br>
+        all knowledge of your actions.
+      </div>
+      <div id="self-destruct-container">
+        <div class="sd-label">⚠ SELF-DESTRUCT SEQUENCE INITIATED ⚠</div>
+        <div id="countdown">5</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="destroyed">
+    <div class="destroyed-title">MESSAGE DESTROYED</div>
+    <div class="destroyed-sub">THIS MESSAGE HAS SELF-DESTRUCTED AS PROMISED</div>
+    <div style="margin-top: 40px; font-size:0.7rem; color:#444; letter-spacing:0.2em;">
+      Good luck, Agent.<br><br>
+      Ayomide and Dumebi are counting on you.<br>
+      The world needs more joy. You know what to do.<br><br>
+      As always — if you or any member of your team is caught not having fun,<br>
+      the agency will deny all knowledge of your actions.<br><br>
+      <span style="color:#666;">— THE SECRETARY</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── CUSTOMISE YOUR PARTY DETAILS HERE ──────────────────
+  const partyDetails = {
+    date:    "SATURDAY, 19 JULY 2025",
+    time:    "19:00 – LATE",
+    address: "42 NEW HOME STREET, YOUR CITY",
+    contact: "your@email.com  ·  +1 555 000 0000",
+    hostName: "YOUR NAME"
+  };
+  // ────────────────────────────────────────────────────────
+
+  const briefingMessage = `Good evening, Agent. Intelligence has confirmed what our analysts have long suspected. Ayomide and Dumebi — codenames: SUNLIGHT and THUNDER — are two of the world's most dangerous joy operatives. For years, they have operated in the shadows, spreading warmth, laughter, and unacceptable levels of good vibes across the globe. We have reason to believe they have recently acquired a new base of operations. Our sources confirm that on the evening in question, they will be unveiling their most classified assets yet — the secret weapons behind their legendary hospitality. Guest list is strictly controlled. Access is by personal invitation only. Your mission, should you choose to accept it, is to infiltrate the premises, eat their food, drink their drinks, and have the most extraordinary amount of fun legally permitted in a residential property.`;
+
+  // Populate details
+  document.getElementById('party-date').textContent    = partyDetails.date;
+  document.getElementById('party-time').textContent    = partyDetails.time;
+  document.getElementById('party-address').textContent = partyDetails.address;
+  document.getElementById('party-contact').textContent = partyDetails.contact;
+
+  // ── MI Theme (pure tone synthesis — no copyright) ──────
+  let audioCtx;
+  function buildMITheme() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const master = audioCtx.createGain();
+    master.gain.value = 0.22;
+    master.connect(audioCtx.destination);
+
+    const reverb = audioCtx.createConvolver();
+    const reverbGain = audioCtx.createGain();
+    reverbGain.gain.value = 0.35;
+    const bufLen = audioCtx.sampleRate * 2;
+    const reverbBuf = audioCtx.createBuffer(2, bufLen, audioCtx.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const ch = reverbBuf.getChannelData(c);
+      for (let i = 0; i < bufLen; i++) ch[i] = (Math.random()*2-1) * Math.pow(1 - i/bufLen, 2);
+    }
+    reverb.buffer = reverbBuf;
+    reverb.connect(reverbGain);
+    reverbGain.connect(master);
+
+    function note(freq, start, dur, type='sawtooth', vol=0.15) {
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0, start);
+      g.gain.linearRampToValueAtTime(vol, start + 0.04);
+      g.gain.linearRampToValueAtTime(vol * 0.7, start + dur * 0.5);
+      g.gain.linearRampToValueAtTime(0, start + dur);
+      osc.connect(g); g.connect(master); g.connect(reverb);
+      osc.start(start); osc.stop(start + dur + 0.05);
+    }
+
+    function bass(freq, start, dur) {
+      note(freq, start, dur, 'triangle', 0.25);
+    }
+
+    function drumKick(start) {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(150, start);
+      o.frequency.exponentialRampToValueAtTime(40, start + 0.15);
+      g.gain.setValueAtTime(0.5, start);
+      g.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+      o.connect(g); g.connect(master);
+      o.start(start); o.stop(start + 0.2);
+    }
+
+    function hihat(start, vol=0.04) {
+      const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*0.05, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+      const src = audioCtx.createBufferSource();
+      const g   = audioCtx.createGain();
+      const flt = audioCtx.createBiquadFilter();
+      flt.type = 'highpass'; flt.frequency.value = 8000;
+      src.buffer = buf;
+      g.gain.setValueAtTime(vol, start);
+      g.gain.exponentialRampToValueAtTime(0.001, start + 0.05);
+      src.connect(flt); flt.connect(g); g.connect(master);
+      src.start(start); src.stop(start + 0.06);
+    }
+
+    const t = audioCtx.currentTime + 0.1;
+    const bpm = 132; const beat = 60/bpm;
+
+    // MI melody (stylized approximation)
+    const melody = [
+      [329.63,0,0.18],[311.13,0.25,0.18],[329.63,0.5,0.4],
+      [392,1,0.18],[369.99,1.25,0.18],[392,1.5,0.4],
+      [440,2,0.55],[415.30,2.75,0.55],
+      [392,3.5,0.18],[369.99,3.75,0.18],[392,4,0.4],
+      [329.63,4.5,0.18],[311.13,4.75,0.18],[329.63,5,0.55],
+      [293.66,5.75,0.4],[261.63,6.25,0.8],
+    ];
+    melody.forEach(([f,s,d])=> note(f, t+s, d, 'sawtooth', 0.14));
+
+    // Bass riff
+    const bassLine = [
+      [82.41,0,0.35],[87.31,0.5,0.35],[92.50,1,0.35],[87.31,1.5,0.35],
+      [82.41,2,0.35],[87.31,2.5,0.35],[92.50,3,0.35],[87.31,3.5,0.35],
+      [82.41,4,0.35],[87.31,4.5,0.35],[92.50,5,0.35],[87.31,5.5,0.35],
+      [77.78,6,0.7],
+    ];
+    bassLine.forEach(([f,s,d])=> bass(f, t+s, d));
+
+    // Drums
+    for (let i=0; i<4; i++) {
+      drumKick(t + i*beat*4);
+      drumKick(t + i*beat*4 + beat*2);
+    }
+    for (let i=0; i<32; i++) hihat(t + i*beat*0.5);
+
+    // Loop after 7 seconds
+    setTimeout(buildMITheme, 7200);
+  }
+
+  // ── TYPEWRITER ──────────────────────────────────────────
+  function typeWriter(text, el, cursor, speed=28) {
+    return new Promise(resolve => {
+      let i = 0;
+      function tick() {
+        if (i < text.length) {
+          el.textContent += text[i++];
+          setTimeout(tick, speed + Math.random()*18);
+        } else {
+          cursor.style.display = 'none';
+          resolve();
+        }
+      }
+      tick();
+    });
+  }
+
+  // ── OBJECTIVES ──────────────────────────────────────────
+  function revealObjectives() {
+    return new Promise(resolve => {
+      const items = document.querySelectorAll('.obj-item');
+      items.forEach((el, i) => {
+        setTimeout(() => {
+          el.classList.add('revealed');
+          if (i === items.length - 1) setTimeout(resolve, 400);
+        }, i * 400);
+      });
+    });
+  }
+
+  // ── SELF DESTRUCT ────────────────────────────────────────
+  function selfDestruct() {
+    return new Promise(resolve => {
+      const container = document.getElementById('self-destruct-container');
+      const countEl   = document.getElementById('countdown');
+      container.classList.add('active');
+      let n = 5;
+      const interval = setInterval(() => {
+        n--;
+        countEl.textContent = n;
+        if (n <= 0) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 1000);
+    });
+  }
+
+  function destroyMessage() {
+    const overlay = document.getElementById('static-overlay');
+    const wrapper = document.getElementById('file-wrapper');
+    const destroyed = document.getElementById('destroyed');
+
+    overlay.classList.add('active');
+
+    let flicker = 0;
+    const flickerInterval = setInterval(() => {
+      wrapper.style.opacity = Math.random() > 0.5 ? '1' : '0';
+      flicker++;
+      if (flicker > 12) {
+        clearInterval(flickerInterval);
+        wrapper.style.display = 'none';
+        overlay.classList.remove('active');
+        destroyed.classList.add('active');
+      }
+    }, 80);
+  }
+
+  // ── START ────────────────────────────────────────────────
+  async function startMission() {
+    // Fade out intro
+    document.getElementById('intro').classList.add('fade-out');
+    setTimeout(() => document.getElementById('intro').style.display = 'none', 1000);
+
+    // Start audio
+    try { buildMITheme(); } catch(e) {}
+
+    // Show dossier
+    document.getElementById('dossier').classList.add('visible');
+
+    // Wait a beat, then type
+    await new Promise(r => setTimeout(r, 800));
+
+    const textEl   = document.getElementById('typing-text');
+    const cursorEl = document.getElementById('typing-cursor');
+    await typeWriter(briefingMessage, textEl, cursorEl);
+
+    await new Promise(r => setTimeout(r, 600));
+    await revealObjectives();
+    await new Promise(r => setTimeout(r, 1200));
+    await selfDestruct();
+    destroyMessage();
+  }
+</script>
+</body>
+</html>
